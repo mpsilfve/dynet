@@ -26,23 +26,30 @@ namespace dynet {
 
 MemAllocator::~MemAllocator() {}
 
-  void *aligned_malloc(size_t alignment, size_t size)
-{
-	alignment = alignment > 0 ? alignment : 1;
-	size += alignment;
+  void* aligned_malloc(size_t alignment, size_t amount) {
+	assert(alignment == FIBITMAP_ALIGNMENT);
+	/*
+	In some rare situations, the malloc routines can return misaligned memory. 
+	The routine FreeImage_Aligned_Malloc allocates a bit more memory to do
+	aligned writes.  Normally, it *should* allocate "alignment" extra memory and then writes
+	one dword back the true pointer.  But if the memory manager returns a
+	misaligned block that is less than a dword from the next alignment, 
+	then the writing back one dword will corrupt memory.
 
-	uintptr_t ptr = (uintptr_t)malloc(size);
-#ifndef __clang_analyzer__ // Hide clang analyzer false positive: Memory is never released; potential leak of memory pointed to by 'ptr'
-	if (!ptr)
-		return 0;
-	++ptr; // Must make room for storing the offset info.
-	ptrdiff_t incr = (alignment - (ptr & (alignment-1))) & (alignment-1);
-	ptr += incr;
-	((u8*)ptr)[-1] = (u8)(incr+1);
-#endif
-	assert(ptr % alignment == 0);
-	return (void*)ptr;
-}
+	For example, suppose that alignment is 16 and malloc returns the address 0xFFFF.
+
+	16 - 0xFFFF % 16 + 0xFFFF = 16 - 15 + 0xFFFF = 0x10000.
+
+	Now, you subtract one dword from that and write and that will corrupt memory.
+
+	That's why the code below allocates *two* alignments instead of one. 
+	*/
+	void* mem_real = malloc(amount + 2 * alignment);
+	if(!mem_real) return NULL;
+	char* mem_align = (char*)((unsigned long)(2 * alignment - (unsigned long)mem_real % (unsigned long)alignment) + (unsigned long)mem_real);
+	*((long*)mem_align - 1) = (long)mem_real;
+	return mem_align;
+}   
   
 void* CPUAllocator::malloc(size_t n) {
   //void* ptr = _mm_malloc(n, align);
