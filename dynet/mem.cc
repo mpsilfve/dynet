@@ -10,7 +10,7 @@
 
 #include <fcntl.h>
 #if !_WINDOWS
-#include <mm_malloc.h>
+//#include <mm_malloc.h>
 #endif
 #include "dynet/except.h"
 #include "dynet/devices.h"
@@ -27,7 +27,8 @@ namespace dynet {
 MemAllocator::~MemAllocator() {}
 
 void* CPUAllocator::malloc(size_t n) {
-  void* ptr = _mm_malloc(n, align);
+  //void* ptr = _mm_malloc(n, align);
+  void* ptr = aligned_malloc(align, n);
   if (!ptr) {
     show_pool_mem_info();
     cerr << "CPU memory allocation failed n=" << n << " align=" << align << endl;
@@ -37,7 +38,8 @@ void* CPUAllocator::malloc(size_t n) {
 }
 
 void CPUAllocator::free(void* mem) {
-  _mm_free(mem);
+  //_mm_free(mem);
+  free(mem);
 }
 
 void CPUAllocator::zero(void* p, size_t n) {
