@@ -26,6 +26,24 @@ namespace dynet {
 
 MemAllocator::~MemAllocator() {}
 
+  void *aligned_malloc(size_t alignment, size_t size)
+{
+	alignment = alignment > 0 ? alignment : 1;
+	size += alignment;
+
+	uintptr_t ptr = (uintptr_t)malloc(size);
+#ifndef __clang_analyzer__ // Hide clang analyzer false positive: Memory is never released; potential leak of memory pointed to by 'ptr'
+	if (!ptr)
+		return 0;
+	++ptr; // Must make room for storing the offset info.
+	ptrdiff_t incr = (alignment - (ptr & (alignment-1))) & (alignment-1);
+	ptr += incr;
+	((u8*)ptr)[-1] = (u8)(incr+1);
+#endif
+	assert(ptr % alignment == 0);
+	return (void*)ptr;
+}
+  
 void* CPUAllocator::malloc(size_t n) {
   //void* ptr = _mm_malloc(n, align);
   void* ptr = aligned_malloc(align, n);
