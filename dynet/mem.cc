@@ -26,8 +26,8 @@ namespace dynet {
 
 MemAllocator::~MemAllocator() {}
 
-  //  void* aligned_malloc(size_t alignment, size_t amount) {
-  //	assert(alignment == FIBITMAP_ALIGNMENT);
+  void* aligned_malloc(size_t alignment, size_t amount) {
+	assert(alignment == FIBITMAP_ALIGNMENT);
 	/*
 	In some rare situations, the malloc routines can return misaligned memory. 
 	The routine FreeImage_Aligned_Malloc allocates a bit more memory to do
@@ -44,12 +44,12 @@ MemAllocator::~MemAllocator() {}
 
 	That's why the code below allocates *two* alignments instead of one. 
 	*/
-  //	void* mem_real = malloc(amount + 2 * alignment);
-  //	if(!mem_real) return NULL;
-  //	char* mem_align = (char*)((unsigned long)(2 * alignment - (unsigned long)mem_real % (unsigned long)alignment) + (unsigned long)mem_real);
-  //	*((long*)mem_align - 1) = (long)mem_real;
-  //	return mem_align;
-  //}   
+	void* mem_real = malloc(amount + 2 * alignment);
+	if(!mem_real) return NULL;
+	char* mem_align = (char*)((unsigned long)(2 * alignment - (unsigned long)mem_real % (unsigned long)alignment) + (unsigned long)mem_real);
+	*((long*)mem_align - 1) = (long)mem_real;
+	return mem_align;
+}   
   
 void* CPUAllocator::malloc(size_t n) {
   //void* ptr = _mm_malloc(n, align);
